@@ -1,4 +1,0 @@
-youtube-transcript-api
-flask
-numpy
-sentence-transformers
