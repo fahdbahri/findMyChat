@@ -1,0 +1,5 @@
+youtube-transcript-api
+flask
+numpy
+sentence-transformers
+google-api-python-client
