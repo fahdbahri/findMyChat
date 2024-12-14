@@ -1,9 +1,10 @@
 import os
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
-import pprint as pp
 from youtube_transcript_api import YouTubeTranscriptApi, CouldNotRetrieveTranscript
-import sqlite3 
+import sqlite3
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 class PodcastSearchEngine:
     def __init__(self):
@@ -70,6 +71,41 @@ class PodcastSearchEngine:
             podcast_info = self.extract_video_info(video_id)
             if podcast_info:
                 self.store_podcast_info(podcast_info)
+    
+    def search_podcast(self, query, top_k=2):
+
+        # Extract the information from the database
+        cursor = self.db_connection.cursor()
+        cursor.execute('''SELECT video_id, title, transcript FROM podcasts''')
+        podcasts = cursor.fetchall()
+
+        # Append the query with the array
+        texts = [podcast[2] for podcast in podcasts]
+        texts.append(query)
+
+
+        # Vectorization
+        tfidf_vectorizer = TfidfVectorizer()
+        tfidf_matrix = tfidf_vectorizer.fit_transform(texts)
+
+        # COmpute similarity
+        similarity_score = cosine_similarity(tfidf_matrix[-1] ,tfidf_matrix[:-1])[0]
+
+
+        top_indices = similarity_score.argsort()[-top_k:][::-1]
+
+        results = [
+            {
+                'video_id': podcasts[idx][0],
+                'title': podcasts[idx][1]
+
+            } for idx in top_indices
+        ] 
+
+        return results 
+
+
+        
 
     def __del__(self):
         if self.db_connection:
@@ -91,6 +127,11 @@ def main():
     ]
 
     search_engine.bulk_and_store_all(video_ids)
+
+    results  = search_engine.search_podcast("can we use AI to study")
+
+    for result in results:
+        print(f"{result['title']} and {result['video_id']}")
 
 
 if __name__ == "__main__":
