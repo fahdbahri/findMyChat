@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import TextField from "@mui/material/TextField"
+
 
 function App() {
   const [data, setData] = useState([{}]);
@@ -13,12 +15,16 @@ function App() {
       });
   }, []);
   return (
-    <div>
-      {(typeof data.Name === 'undefined') ? (
-        <p>Loading...</p>
-      ) : (
-        data.Name.map((member, i) => <p key={i}>{member}</p>)
-      )}
+    <div className="main">
+      <h1>Search Your Favourite Podcast</h1>
+      <div className="search">
+        <TextField 
+        id="outlined-basic"
+        variant="outlined"
+        fullWidth
+        label="Seach"
+        />
+      </div>
     </div>
   );
 }
