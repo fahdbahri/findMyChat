@@ -89,9 +89,12 @@ class PodcastSearchEngine:
         tfidf_matrix = tfidf_vectorizer.fit_transform(texts)
 
         # COmpute similarity
+        # The [0] is used to flatten the results into 1-D array
         similarity_score = cosine_similarity(tfidf_matrix[-1] ,tfidf_matrix[:-1])[0]
 
-
+        # Get the acending order
+        # Select the top ones
+        # Reverse the array
         top_indices = similarity_score.argsort()[-top_k:][::-1]
 
         results = [
