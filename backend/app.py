@@ -1,14 +1,21 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from youtube_services import PodcastSearchEngine
 
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/home", methods=['GET'])
-def index():
-    return {"Name": ["Fahd", "Khalid", "Jhone"]}
+# Initialize the search engine once
+search_engine = PodcastSearchEngine()
 
+@app.route("/home", methods=['POST'])
+def search_videos():
+    try:
+        usr_query = request.json["search-input"]
+        results = search_engine.search_podcast(usr_query)
+        return jsonify(results)  # results is already a list of dicts with title and video_id
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
