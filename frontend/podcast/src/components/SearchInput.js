@@ -1,37 +1,44 @@
+// SearchInput.js
 import React, { useState } from "react";
-import TextField from "@mui/material/TextField";
-import APIService from "../components/APIServices";
+import "./SearchInput.css";
 
-const SearchInput = ({ onSearch }) => {
+const SearchInput = () => {
   const [searchInput, setSearchInput] = useState("");
 
-  const handleSumbit = async (event) => {
-    event.preventDefault();
+  const SendSearchInput = (value) => {
+    console.log("Sending value:", value);  // Add this
+    console.log("Sending body:", JSON.stringify({ "search-input": value }));
+    fetch("/home", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ "search-input": value })
+    })
+    .then((response) => response.json())
+    .then((json) => {
+      console.log(json)
+    })
+    .catch(error => console.error('Error:', error));
+  };
+
+  const handleSubmit = (value) => {
     try {
-      const response = await APIService.SendSearchInput(searchInput);
-      onsearch(response);
-      setSearchInput("");
+      setSearchInput(value);
+      SendSearchInput(value);
     } catch (error) {
-      console.log("erorr", error);
+      console.log("There is an error in here", error);
     }
   };
 
   return (
     <div className="main">
       <h1>Search Your Favourite Podcast</h1>
-      <form onSubmit={handleSumbit}>
-        <div className="search">
-          <TextField
-            id="outlined-basic"
-            value={searchInput}
-            variant="outlined"
-            onChange={(e) => setSearchInput(e.target.value)}
-            fullWidth
-            label="Search"
-          />
-        </div>
-        <button className="btn btn-primary mt-2">Search</button>
-      </form>
+      <input
+        placeholder="Search here"
+        value={searchInput}
+        onChange={(e) => handleSubmit(e.target.value)}
+      />
     </div>
   );
 };

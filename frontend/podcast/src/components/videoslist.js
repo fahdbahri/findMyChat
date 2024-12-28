@@ -1,4 +1,5 @@
 const VideoList = ({ videos }) => {
+  videos = Array.from(videos)
     return (
       <div className="mt-2">
         {videos && videos.map(video => (
