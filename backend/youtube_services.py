@@ -74,38 +74,53 @@ class PodcastSearchEngine:
     
     def search_podcast(self, query, top_k=2):
 
+        try:
+
         # Extract the information from the database
-        cursor = self.db_connection.cursor()
-        cursor.execute('''SELECT video_id, title, transcript FROM podcasts''')
-        podcasts = cursor.fetchall()
+            with sqlite3.connect("podcast.db") as db_connection:
 
-        # Append the query with the array
-        texts = [podcast[2] for podcast in podcasts]
-        texts.append(query)
+                cursor = db_connection.cursor()
+                cursor.execute('''SELECT video_id, title, transcript FROM podcasts''')
+                podcasts = cursor.fetchall()
+
+                if not podcasts:
+                    print("Table is empty")
+
+                # Append the query with the array
+                texts = [podcast[2] for podcast in podcasts]
+                texts.append(query)
 
 
-        # Vectorization
-        tfidf_vectorizer = TfidfVectorizer()
-        tfidf_matrix = tfidf_vectorizer.fit_transform(texts)
+                # Vectorization
+                tfidf_vectorizer = TfidfVectorizer()
+                tfidf_matrix = tfidf_vectorizer.fit_transform(texts)
 
-        # COmpute similarity
-        # The [0] is used to flatten the results into 1-D array
-        similarity_score = cosine_similarity(tfidf_matrix[-1] ,tfidf_matrix[:-1])[0]
+                # COmpute similarity
+                # The [0] is used to flatten the results into 1-D array
+                similarity_score = cosine_similarity(tfidf_matrix[-1] ,tfidf_matrix[:-1])[0]
 
-        # Get the acending order
-        # Select the top ones
-        # Reverse the array
-        top_indices = similarity_score.argsort()[-top_k:][::-1]
+                # Get the acending order
+                # Select the top ones
+                # Reverse the array
+                top_indices = similarity_score.argsort()[-top_k:][::-1]
 
-        results = [
-            {
-                'video_id': podcasts[idx][0],
-                'title': podcasts[idx][1]
+                results = [
+                    {
+                        'video_id': podcasts[idx][0],
+                        'title': podcasts[idx][1]
 
-            } for idx in top_indices
-        ] 
+                    } for idx in top_indices
+                ] 
 
-        return results 
+                print("Processed results", results)
+
+                return results 
+            
+        except Exception as e:
+            print(f"Error in search_podcast function : {str(e)}")
+            
+
+        
 
 
         
