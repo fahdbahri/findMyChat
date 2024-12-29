@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from youtube_services import PodcastSearchEngine
-import sqlite3
 
 
 
@@ -16,23 +15,7 @@ def search_videos():
     try:
 
 
-        print("Request received!")  # Debug line 1
-        print("Request JSON:", request.json)  # Debug line 2
-        usr_query = request.json["search-input"]
-
-        # Debug the databasae 
-        sqliteconnect = sqlite3.connect('podcast.db')
-        cursor = sqliteconnect.cursor()
-        print("connected to the SQLite")
-
-        sqlite_query = """SELECT video_id FROM podcasts"""
-        cursor.execute(sqlite_query)
-        records = cursor.fetchall()
-        print(len(records))
-        print(records)
-
-        
-
+        usr_query = request.json["search-input"]  
         results = search_engine.search_podcast(usr_query)
         return jsonify(results)
     
