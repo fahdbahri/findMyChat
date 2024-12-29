@@ -3,7 +3,6 @@ import "./App.css";
 import VideoList from "./components/videoslist";
 import SearchInput from "./components/SearchInput";
 
-
 function App() {
   const [videos, setVideos] = useState([]);
 
@@ -12,9 +11,11 @@ function App() {
   };
 
   return (
-    <div>
-      <SearchInput onSearch={showResults} />
-      <VideoList videos={videos} />
+    <div className="App">
+      <div className="search-bar-container">
+        <SearchInput showResults={showResults} />
+        <VideoList videos={videos} />
+      </div>
     </div>
   );
 }
