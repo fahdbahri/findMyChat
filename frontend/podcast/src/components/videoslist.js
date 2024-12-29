@@ -1,3 +1,6 @@
+import "./videolist.css"
+
+
 const VideoList = ({ videos }) => {
   videos = Array.from(videos)
     return (

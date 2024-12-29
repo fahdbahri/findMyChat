@@ -4,8 +4,8 @@
     border: none;
     border-radius: 10px;
     padding: 0 15px;
-    box-shadow: 0px 0px 8px #ddd;
-    background-color: white;
+    box-shadow: 0px 0px 8px;
+    background-color: #efefef;
     display: flex;
     align-items: center;
   }
@@ -14,7 +14,7 @@
     background-color: transparent;
     border: none;
     height: 100%;
-    font-size: 1.25rem;
+    font-size: 1rem;
     width: 100%;
     margin-left: 5px;
   }
@@ -25,4 +25,5 @@
   
   #search-icon {
     color: royalblue;
+    background-color: #efefef;
   }

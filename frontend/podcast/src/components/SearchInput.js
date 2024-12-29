@@ -1,13 +1,13 @@
 // SearchInput.js
 import React, { useState } from "react";
+import { FaSearch } from "react-icons/fa"
+
 import "./SearchInput.css";
 
-const SearchInput = () => {
+const SearchInput = ({ showResults }) => {
   const [searchInput, setSearchInput] = useState("");
 
   const SendSearchInput = (value) => {
-    console.log("Sending value:", value);  // Add this
-    console.log("Sending body:", JSON.stringify({ "search-input": value }));
     fetch("/home", {
       method: 'POST',
       headers: {
@@ -17,7 +17,12 @@ const SearchInput = () => {
     })
     .then((response) => response.json())
     .then((json) => {
-      console.log(json)
+      const results = json.filter((videos) => {
+        return (
+          videos.video_id && videos.title
+        );
+      });
+      showResults(results);
     })
     .catch(error => console.error('Error:', error));
   };
@@ -33,9 +38,9 @@ const SearchInput = () => {
 
   return (
     <div className="main">
-      <h1>Search Your Favourite Podcast</h1>
+      <FaSearch id="search-icon" />
       <input
-        placeholder="Search here"
+        placeholder="Type to search..."
         value={searchInput}
         onChange={(e) => handleSubmit(e.target.value)}
       />
