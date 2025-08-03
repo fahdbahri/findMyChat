@@ -1,0 +1,130 @@
+version: "3.9"  # Or "3.8", "3.7" — depending on your Docker version
+
+services:
+  vault:
+    image: hashicorp/vault:latest
+    container_name: vault
+    restart: always
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_ADDR: http://127.0.0.1:8200
+      VAULT_API_ADDR: http://127.0.0.1:8200
+    volumes:
+      - ./vault/config:/vault/config
+      - ./vault/data:/vault/data
+    command: vault server -config /vault/config/vault.json
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.1.0
+    container_name: elasticsearch
+    restart: always
+    ports:
+      - "9200:9200"
+    environment:
+      node.name: 'es01'
+      cluster.name: 'docker-cluster'
+      discovery.type: 'single-node'
+      xpack.security.enabled: 'false'
+      xpack.security.enrollment.enabled: 'false'
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.1.0
+    container_name: kibana
+    restart: always
+    ports:
+      - "5601:5601"
+    environment:
+      - node.name=kibana
+      - cluster.name=docker-cluster
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  celery_worker_fetch:
+    build: .
+    container_name: celery_worker_fetch
+    restart: always
+    command: celery -A services.celery_config:celery_app worker --pool=threads --concurrency=10 --queues=fetch --loglevel=info
+    environment:
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - rabbitmq
+    volumes:
+      - .:/app
+
+  celery_worker_process:
+    build: .
+    container_name: celery_worker_process
+    restart: always
+    command: celery -A services.celery_config:celery_app worker --pool=threads --concurrency=15 --queues=process --loglevel=info
+    environment:
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - rabbitmq
+    volumes:
+      - .:/app
+
+  celery_worker_store:
+    build: .
+    container_name: celery_worker_store
+    restart: always
+    command: celery -A services.celery_config:celery_app worker --pool=threads --concurrency=5 --queues=store --loglevel=info
+    environment:
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - rabbitmq
+    volumes:
+      - .:/app
+  
+  backend:
+    build: .
+    container_name: backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+    depends_on:
+      - elasticsearch
+      - rabbitmq
+    volumes:
+      - .:/app
+
+
+volumes:
+  rabbitmq_data:
+  esdata:
