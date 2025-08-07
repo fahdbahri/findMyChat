@@ -100,3 +100,4 @@ eventlet
 pybloom-live
 elasticsearch
 more-itertools
+sentence-transformers

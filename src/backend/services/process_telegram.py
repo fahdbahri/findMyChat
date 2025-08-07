@@ -6,44 +6,72 @@ from typing import List, Optional
 from telethon.sync import TelegramClient
 from telethon.sessions import StringSession
 import asyncpg
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-
+# from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from sentence_transformers import SentenceTransformer
+from .celery_config import celery_app
+from .models import store_messages
+from .vault_encryption import batch_encrypt
 
 # embedding using langchain
 # encrpt the message
 # store the message
 # use backgroun
 
+BATCH_SIZE = 1000  # Smaller batches for Celery
+EMBEDDING_BATCH = 64  # More conservative for worker memory
 
-class Message(BaseModel):
-    message: str
-    embedded_message: list
+model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
+
+class Messages(BaseModel):
+    user_id: str
+    messages: list[str]
 
 
 load_dotenv()
-
-google_api_key = os.getenv("GEMINI_API_KEY")
-embeddings = GoogleGenerativeAIEmbeddings(
-    model="models/embedding-001", google_api_key=google_api_key
-)
 
 
 api_id = os.getenv("TELEGRAM_API_ID")
 api_hash = os.getenv("TELEGRAM_API_HASH")
 
 
-conn = asyncpg.connect(
-    host=os.getenv("POSTGRES_HOST"),
-    database=os.getenv("POSTGRES_DB"),
-    user=os.getenv("POSTGRES_USER"),
-    password=os.getenv("POSTGRES_PASSWORD"),
-)
+@celery_app.task(bind=True, queue='telegram_fetch')
+def process_telegram_messages(self, batch: dict):
+
+    batch = Messages(**batch)
+
+    if not batch.messages:
+        return {"status": "error", "error": "No message found"}
+
+    try:
+        # Batch encrypt
+        encrypted = batch_encrypt(batch.messages, "chat-msg")
 
 
-async def fetch_telegram_messages(user_id: int, session_string: str):
+        vectors = []
+        for i in range(0, len(batch.messages), EMBEDDING_BATCH):
+            vectors.extend(model.encode(batch.messages[i:i+EMBEDDING_BATCH], show_progress_bar=False))
+
+
+        print(f"Batch processing completed: {len(batch.messages)} messages processed")
+
+        print(f"Storing messages...")
+
+        store_messages([(batch.user_id, encrypted, vec.tolist()) for vec in vectors])
+
+        print(f"Messages stored successfully")
+        return {"status": "success"}
+    except Exception as e:
+        print(f"Batch processing failed: {e}")
+        self.retry(exc=e, countdown=60)
+
+
+
+
+
+async def fetch_telegram_messages(user_id: str, session_string: str):
 
     print(
-        f"Fetching messages for user {user_id} using the sessions string {session_string}"
+        f"Fetching messages for user {user_id}"
     )
 
     async with TelegramClient(
@@ -51,25 +79,20 @@ async def fetch_telegram_messages(user_id: int, session_string: str):
     ) as client:
 
         async for dialog in client.iter_dialogs():
-            print(dialog)
             if dialog.is_user or dialog.is_group or dialog.is_channel:
-                print(dialog.entity)
-                async for message in dialog.iter_messages(dialog.id, limit=10):
-                    print("printing the messages: {message}")
-                    message = Message(
-                        message=message.text,
-                        embedded_message=embeddings.embed_query(message.text),
-                    )
-                    print(message)
-                    # await store_messages(user_id, message.text, message.embedded_message)
+                messages = []
+                async for message in client.iter_messages(dialog.id, limit=100):
+                    if hasattr(message, "text") and message.text:
+                        messages.append(message.text)
+
+                for i in range(0, len(messages), BATCH_SIZE):
+                    batch = Messages(user_id=user_id, messages=messages[i:i+BATCH_SIZE])
+                    process_telegram_messages.delay(batch.dict())
 
 
-async def store_messages(user_id: int, message: str, embedded_message: list):
+    return {"status": "processing_started"}
 
-    async with conn.cursor() as cur:
-        await cur.execute(
-            "INSERT INTO messages (user_id, message, embedded_message) VALUES (%s, %s, %s)",
-            (user_id, message, embedded_message),
-        )
+                    
 
-        await cur.commit()
+
+

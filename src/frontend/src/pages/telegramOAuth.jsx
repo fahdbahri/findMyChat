@@ -9,7 +9,7 @@ export function TelegramOAuth() {
   const [isValid, setIsValid] = useState(true)
   const [otpSent, setOtpSent] = useState(false)
   const [otpCode, setOtpCode] = useState("")
-  const [phoneCodeHash, setPhoneCodeHash] = useState("")
+  const [sessionID, setSessionID] = useState("")
   const [error, setError] = useState("")
   const location = useLocation()
   const [userID, setID] = useState("")
@@ -42,7 +42,7 @@ export function TelegramOAuth() {
 
     if (res.ok) {
       const data = await res.json()
-      setPhoneCodeHash(data.phone_code_hash)
+      setSessionID(data.session_id)
       setOtpSent(true)
     } else {
       setError("Failed to send OTP. Try again.")
@@ -53,7 +53,7 @@ export function TelegramOAuth() {
     const res = await fetch("http://localhost:8000/auth/telegram/confirm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: userID, phone: fullPhone, code: otpCode, phone_code_hash: phoneCodeHash }),
+      body: JSON.stringify({ user_id: userID, session_id: sessionID, code: otpCode }),
     })
 
     if (res.ok) {

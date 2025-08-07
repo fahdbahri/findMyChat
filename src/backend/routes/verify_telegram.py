@@ -1,10 +1,15 @@
-
 import os
+import time
+import asyncio
+import redis
+import json
+import uuid
 from fastapi import APIRouter, BackgroundTasks
+from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
-from telethon import TelegramClient 
+from telethon import TelegramClient
 from telethon.sessions import StringSession
 from services.process_telegram import fetch_telegram_messages
 from services.models import store_user_phone, hash_email
@@ -16,17 +21,23 @@ router = APIRouter(prefix="/auth/telegram")
 api_id = int(os.getenv("TELEGRAM_API_ID"))
 api_hash = os.getenv("TELEGRAM_API_HASH")
 
+redis_client = redis.Redis(host="localhost", port=6379, db=0)
+
+
 class PhoneRequest(BaseModel):
     phone: str
 
+
 class ConfirmRequest(BaseModel):
-    user_id: tuple
-    phone: str
+    user_id: str
+    session_id: str
     code: str
-    phone_code_hash: str
+
 
 @router.post("/start")
 async def telegram_start(data: PhoneRequest):
+
+    session_id = str(uuid.uuid4())
     print(f"Telegram API ID: {api_id}")
     print(f"Telegram API Hash: {api_hash}")
     print(f"Phone number: {data.phone}")
@@ -34,36 +45,57 @@ async def telegram_start(data: PhoneRequest):
     await client.connect()
     result = await client.send_code_request(data.phone)
     phone_code_hash = result.phone_code_hash
+    string_session = client.session.save()
+    session_data = {
+        "phone": data.phone,
+        "session_string": string_session,
+        "phone_code_hash": phone_code_hash
+    }
+    redis_client.setex(f"telegram_session:{session_id}", 600, json.dumps(session_data))
+
     await client.disconnect()
-    return {"status": "code_sent", "phone_code_hash": phone_code_hash} 
+    return {"status": "code_sent", "session_id": session_id}
+
 
 @router.post("/confirm")
 async def telegram_confirm(data: ConfirmRequest):
-    if data.user_id is not int:
-        data.user_id = int(data.user_id[0])
-    print("Confirm request received")
-    print(f"Phone number: {data.phone}")
-    print(f"OTP code: {data.code}")
 
-    
-    
-    client = TelegramClient(StringSession(), api_id, api_hash)
-    await client.connect()
-    if not client.is_user_authorized():
-         
-        await client.sign_in(data.phone, data.code, data.phone_code_hash)
-        session_string = client.session.save()
-        print(f"Session string: {session_string}")
-        store_user_phone(data.phone, data.user_id)
-        await fetch_telegram_messages(data.user_id, session_string)
-        await client.disconnect()
-        return {
-            "status": "authenticated",
-            "session_string": session_string
-        }
+    try:
 
-    print(f"user_id: {data.user_id}")
+        session_json = redis_client.get(f"telegram_session:{data.session_id}")
+        if not session_json:
+            return {"status": "error", "error": "Session not found"}
 
-    return RedirectResponse("http://localhost:5173/home")
+        session_data = json.loads(session_json)
 
+        print(f"User id: {data.user_id}")
+        print("Confirm request received")
+        print(f"Phone number: {session_data['phone']}")
+        print(f"OTP code: {data.code}")
 
+        await asyncio.sleep(3)
+
+        client = TelegramClient(
+            StringSession(session_data["session_string"]), api_id, api_hash
+        )
+        await client.connect()
+        if not (await client.is_user_authorized()):
+
+            await client.sign_in(
+                phone=session_data["phone"], code=data.code, phone_code_hash=session_data["phone_code_hash"]
+            )
+            session_string = client.session.save()
+            print(f"Session string: {session_string}")
+            store_user_phone(session_data["phone"], data.user_id)
+            await fetch_telegram_messages(data.user_id, session_string)
+            redis_client.delete(f"telegram_session:{data.session_id}")
+            await client.disconnect()
+            return {"status": "authenticated", "session_string": session_string}
+
+        print(f"user_id: {data.user_id}")
+
+        return RedirectResponse("http://localhost:5173/home")
+
+    except Exception as e:
+        print(f"Telegram error: {e}")
+        print(f"Telegram error")
