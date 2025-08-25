@@ -1,18 +1,17 @@
 import os
-import time
 import asyncio
 import redis
 import json
 import uuid
-from fastapi import APIRouter, BackgroundTasks
-from fastapi.responses import RedirectResponse
+import redis
+from fastapi import APIRouter, BackgroundTasks, WebSocket, WebSocketDisconnect
 from dotenv import load_dotenv
 from pydantic import BaseModel
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from services.process_telegram import fetch_telegram_messages
-from services.models import store_user_phone, hash_email
+from services.models import store_user_phone
 
 load_dotenv()
 
@@ -21,7 +20,7 @@ router = APIRouter(prefix="/auth/telegram")
 api_id = int(os.getenv("TELEGRAM_API_ID"))
 api_hash = os.getenv("TELEGRAM_API_HASH")
 
-redis_client = redis.Redis(host="localhost", port=6379, db=0)
+redis_client = redis.Redis(host="redis", port=6379, db=3)
 
 
 class PhoneRequest(BaseModel):
@@ -49,7 +48,7 @@ async def telegram_start(data: PhoneRequest):
     session_data = {
         "phone": data.phone,
         "session_string": string_session,
-        "phone_code_hash": phone_code_hash
+        "phone_code_hash": phone_code_hash,
     }
     redis_client.setex(f"telegram_session:{session_id}", 600, json.dumps(session_data))
 
@@ -58,7 +57,7 @@ async def telegram_start(data: PhoneRequest):
 
 
 @router.post("/confirm")
-async def telegram_confirm(data: ConfirmRequest):
+async def telegram_confirm(data: ConfirmRequest, background_tasks: BackgroundTasks):
 
     try:
 
@@ -82,20 +81,44 @@ async def telegram_confirm(data: ConfirmRequest):
         if not (await client.is_user_authorized()):
 
             await client.sign_in(
-                phone=session_data["phone"], code=data.code, phone_code_hash=session_data["phone_code_hash"]
+                phone=session_data["phone"],
+                code=data.code,
+                phone_code_hash=session_data["phone_code_hash"],
             )
             session_string = client.session.save()
             print(f"Session string: {session_string}")
             store_user_phone(session_data["phone"], data.user_id)
-            await fetch_telegram_messages(data.user_id, session_string)
+            background_tasks.add_task(
+                fetch_telegram_messages, data.user_id, session_string
+            )
             redis_client.delete(f"telegram_session:{data.session_id}")
             await client.disconnect()
-            return {"status": "authenticated", "session_string": session_string}
+            return {
+                "status": "authinticated",
+                "redirect_url": f"http://localhost:5173/loading?user_id={data.user_id}",
+            }
 
         print(f"user_id: {data.user_id}")
-
-        return RedirectResponse("http://localhost:5173/home")
 
     except Exception as e:
         print(f"Telegram error: {e}")
         print(f"Telegram error")
+
+
+@router.websocket("/task-status")
+async def task_status(ws: WebSocket):
+    await ws.accept()
+    pub_sub = redis_client.pubsub()
+    pub_sub.subscribe("task_updates")
+
+    try:
+        while True:
+            msg = pub_sub.get_message(ignore_subscribe_messages=True)
+            if msg:
+                print(msg["data"].decode())
+                await ws.send_text(msg["data"].decode())
+            await asyncio.sleep(0.1)
+    except WebSocketDisconnect:
+        print("WebSocket disconnected")
+    finally:
+        pub_sub.close()

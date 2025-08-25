@@ -4,12 +4,13 @@ import os
 
 load_dotenv()
 
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "amqp://guest:guest@localhost:5672//")
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/1")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/1")
 
-# Create single Celery instance
-celery_app = Celery("gmail_tasks", broker=CELERY_BROKER_URL)
+celery_app = Celery(
+    "message_tasks", broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND
+)
 
-# Configuration
 celery_app.conf.update(
     worker_pool="threads",
     worker_concurrency=8,
@@ -20,12 +21,14 @@ celery_app.conf.update(
     imports=["services.process_gmail", "services.process_telegram"],
     timezone="UTC",
     enable_utc=True,
-    result_backend=CELERY_BROKER_URL.replace("amqp://", "rpc://"),
     task_default_retry_delay=60,
     task_max_retries=3,
     worker_prefetch_multiplier=4,
     worker_max_tasks_per_child=50,
+    task_routes={
+        "services.process_gmail.*": {"queue": "gmail_process"},
+        "services.process_telegram.*": {"queue": "telegram_process"},
+    },
 )
 
-# Auto-discover tasks
-celery_app.autodiscover_tasks(['services'])
+celery_app.autodiscover_tasks(["services"])

@@ -1,15 +1,36 @@
-FROM python:3.10.17
+FROM python:3.12-slim-bookworm AS base
+
+
+COPY --from=ghcr.io/astral-sh/uv:0.8.10 /uv /uvx /bin/
+
 
 WORKDIR /app
 
-RUN pip install --upgrade pip
 
+COPY uv.lock pyproject.toml ./
 
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Default command (can be overridden in docker-compose)
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+RUN uv sync --locked 
+
+
+FROM base AS app
+
+
+WORKDIR /app
+
+
+
+
+
+
+
+
+
+
+
+
+
+

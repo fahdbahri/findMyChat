@@ -57,7 +57,8 @@ export function TelegramOAuth() {
     })
 
     if (res.ok) {
-      window.location.href = "/home"
+      const data = await res.json()
+      window.location.href = data.redirect_url
     } else {
       setError("Invalid code or error verifying.")
     }

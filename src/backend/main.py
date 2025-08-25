@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-
 app = FastAPI()
 
 # CORS Configuration
@@ -14,8 +13,8 @@ app.add_middleware(
 )
 
 
-from routes import verify_gmail, verify_telegram
+from routes import verify_gmail, verify_telegram, search
+
 app.include_router(verify_gmail.router)
 app.include_router(verify_telegram.router)
-
-
+app.include_router(search.router)
