@@ -9,7 +9,7 @@ load_dotenv()
 VAULT_ADDR = os.getenv("VAULT_ADDR")
 VAULT_TOKEN = os.getenv("VAULT_TOKEN")
 
-vault_client = hvac.Client(url="http://vault:8200", token=os.getenv("VAULT_TOKEN"))
+vault_client = hvac.Client(url=VAULT_ADDR)
 
 
 def encrypt_value(value: str, key_name: str) -> str:

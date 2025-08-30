@@ -1,26 +1,4 @@
 services:
-
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:9.1.0
-    container_name: elasticsearch
-    restart: always
-    ports:
-      - "9200:9200"
-    environment:
-      node.name: 'es01'
-      cluster.name: 'docker-cluster'
-      discovery.type: 'single-node'
-      xpack.security.enabled: 'false'
-      xpack.security.enrollment.enabled: 'false'
-      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-
-    volumes:
-      - esdata:/usr/share/elasticsearch/data
-    
   vault:
     image: hashicorp/vault:latest
     container_name: vault
@@ -30,26 +8,15 @@ services:
     cap_add:
       - IPC_LOCK
     environment:
-      VAULT_ADDR: http://vault:8200
-      VAULT_API_ADDR: http://vault:8200
+      VAULT_ADDR: ${VAULT_ADDR}
+      VAULT_API_ADDR: ${VAULT_API_ADDR}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS}
     volumes:
       - ./vault/config:/vault/config
       - ./vault/data:/vault/data
-    command: vault server -config /vault/config/vault.json
+      - ./vault/config/vault-sa.json:/vault/config/vault-sa.json
+    command: vault server -config /vault/config/vault.hcl
 
-  kibana:
-    image: docker.elastic.co/kibana/kibana:9.1.0
-    container_name: kibana
-    restart: always
-    ports:
-      - "5601:5601"
-    environment:
-      - node.name=kibana
-      - cluster.name=docker-cluster
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    depends_on:
-      - elasticsearch
-  
   redis:
     image: redis:alpine
     container_name: redis
@@ -58,53 +25,52 @@ services:
       - "6379:6379"
 
   backend:
-    image: ai-backend:latest
+    build: .
     container_name: backend
     restart: always
     command: uv run uvicorn main:app --host 0.0.0.0 --port 8000
-    ports:
-      - "8000:8000"
     depends_on:
-      - elasticsearch
       - redis
       - celery_gmail
       - celery_telegram
     environment:
-      - CELERY_BROKER_URL=redis://redis:6379/1
-
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - VAULT_ADDR=http://vault:8200
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - ELASTICSEARCH_URL=${ELASTICSEARCH_URL}
+      - VAULT_ADDR=http=${VAULT_ADDR}
       - TELEGRAM_API_ID=${TELEGRAM_API_ID}
       - TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`backend.search.fahdbahri.com`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls=true"
+      - "traefik.http.routers.backend.loadbalancer.server.port=8000"
   
   celery_gmail:
-    image: ai-backend:latest
+    build: .
     container_name: celery_gmail
     restart: always
     command: uv run celery -A services.celery_config:celery_app worker --pool=threads --concurrency=30 -Q gmail_process --loglevel=info
     depends_on:
-      - elasticsearch
       - redis
     environment:
-      - CELERY_BROKER_URL=redis://redis:6379/1
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - VAULT_ADDR=http://vault:8200
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - ELASTICSEARCH_URL=${ELASTICSEARCH_URL}
+      - VAULT_ADDR=${VAULT_ADDR}
 
   celery_telegram:
-    image: ai-backend:latest
+    build: .
     container_name: celery_telegram
     restart: always
     command: uv run celery -A services.celery_config:celery_app worker --pool=threads --concurrency=30 -Q telegram_process --loglevel=info
     depends_on:
-      - elasticsearch
       - redis
     environment:
-      - CELERY_BROKER_URL=redis://redis:6379/1
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - VAULT_ADDR=http://vault:8200
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - ELASTICSEARCH_URL=${ELASTICSEARCH_URL}
+      - VAULT_ADDR=${VAULT_ADDR}
 
-volumes:
-  esdata:
 
