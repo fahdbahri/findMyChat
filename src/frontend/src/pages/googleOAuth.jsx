@@ -1,9 +1,10 @@
 export function GoogleOAuth() {
   const handleGoogleLogin = () => {
+    const API_URL = import.meta.env.VITE_API_URL;
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       new URLSearchParams({
         client_id: import.meta.env.VITE_REACT_APP_CLIENT_ID,
-        redirect_uri: 'http://localhost:8000/auth/callback',
+        redirect_uri: `${API_URL}/auth/callback`,
         response_type: 'code',
         scope: 'openid email profile https://www.googleapis.com/auth/gmail.readonly',
         access_type: 'offline',

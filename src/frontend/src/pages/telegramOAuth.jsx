@@ -33,8 +33,8 @@ export function TelegramOAuth() {
       return
     }
 
-
-    const res = await fetch("http://localhost:8000/auth/telegram/start", {
+    const API_URL = import.meta.env.VITE_API_URL
+    const res = await fetch(`${API_URL}/auth/telegram/start`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone: fullPhone }),

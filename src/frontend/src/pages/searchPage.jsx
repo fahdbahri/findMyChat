@@ -44,8 +44,9 @@ const RAGChat = () => {
 
     try {
       console.log('Sending request with userId:', userId);
+      const API_URL = import.meta.env.VITE_API_URL;
 
-      const res = await fetch("http://localhost:8000/search", {
+      const res = await fetch(`${API_URL}/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -75,7 +76,7 @@ const RAGChat = () => {
       console.error('Search error:', error);
       setMessages((prev) => [...prev, {
         role: "assistant",
-        text: `Error: ${error.message}. Please try again.`
+        text: `Error: ${error.message}.Please try again.`
       }]);
     } finally {
       setIsLoading(false);
@@ -105,10 +106,10 @@ const RAGChat = () => {
         {messages.map((msg, idx) => (
           <div
             key={idx}
-            className={`p-3 rounded-lg max-w-xs ${msg.role === "user"
+            className={`p - 3 rounded - lg max - w - xs ${msg.role === "user"
               ? "bg-blue-500 text-white ml-auto"
               : "bg-gray-200 text-gray-900"
-              }`}
+              } `}
           >
             {msg.text}
           </div>
@@ -133,10 +134,10 @@ const RAGChat = () => {
           disabled={isLoading}
         />
         <button
-          className={`ml-2 px-4 py-2 rounded-lg text-white ${isLoading
+          className={`ml - 2 px - 4 py - 2 rounded - lg text - white ${isLoading
             ? "bg-gray-400 cursor-not-allowed"
             : "bg-blue-500 hover:bg-blue-600"
-            }`}
+            } `}
           onClick={sendQuery}
           disabled={isLoading}
         >
