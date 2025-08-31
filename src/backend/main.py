@@ -3,10 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+origins = ["https://ai-find-chat.vercel.app"]
+
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
