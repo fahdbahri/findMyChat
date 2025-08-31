@@ -37,4 +37,4 @@ src/backend/test.py
 src/backend/vault/
 src/frontend/.env
 src/frontend/src/lib/
-src/frontend/node_modules/
+src/frontend/node_modules
