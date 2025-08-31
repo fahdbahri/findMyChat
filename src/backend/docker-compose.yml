@@ -15,6 +15,8 @@ services:
       - ./vault/config:/vault/config
       - ./vault/data:/vault/data
       - ./vault/config/vault-sa.json:/vault/config/vault-sa.json
+    networks:
+      - dokploy-network
     command: vault server -config /vault/config/vault.hcl
 
   redis:
@@ -23,6 +25,8 @@ services:
     restart: always
     ports:
       - "6379:6379"
+    networks:
+      - dokploy-network
 
   backend:
     build: .
@@ -39,12 +43,15 @@ services:
       - VAULT_ADDR=http=${VAULT_ADDR}
       - TELEGRAM_API_ID=${TELEGRAM_API_ID}
       - TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
-
+    ports:
+      - "8000:8000"
+    networks:
+      - dokploy-network
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`backend.search.fahdbahri.com`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
-      - "traefik.http.routers.backend.tls=true"
+      - "traefik.http.routers.next-app.tls.certResolver=letsencrypt"
       - "traefik.http.routers.backend.loadbalancer.server.port=8000"
   
   celery_gmail:
@@ -59,6 +66,8 @@ services:
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
       - ELASTICSEARCH_URL=${ELASTICSEARCH_URL}
       - VAULT_ADDR=${VAULT_ADDR}
+    networks:
+      - dokploy-network
 
   celery_telegram:
     build: .
@@ -72,5 +81,9 @@ services:
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
       - ELASTICSEARCH_URL=${ELASTICSEARCH_URL}
       - VAULT_ADDR=${VAULT_ADDR}
+    networks:
+      - dokploy-network
 
-
+networks:
+  dokploy-network:
+    driver: bridge
