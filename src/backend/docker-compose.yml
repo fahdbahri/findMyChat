@@ -11,12 +11,12 @@ services:
       VAULT_ADDR: ${VAULT_ADDR}
       VAULT_API_ADDR: ${VAULT_API_ADDR}
       GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS}
+    networks:
+      - dokploy-network
     volumes:
       - ./vault/config:/vault/config
       - ./vault/data:/vault/data
       - ./vault/config/vault-sa.json:/vault/config/vault-sa.json
-    networks:
-      - dokploy-network
     command: vault server -config /vault/config/vault.hcl
 
   redis:
@@ -40,7 +40,7 @@ services:
     environment:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - ELASTICSEARCH_URL=${ELASTICSEARCH_URL}
-      - VAULT_ADDR=http=${VAULT_ADDR}
+      - VAULT_ADDR=${VAULT_ADDR}
       - TELEGRAM_API_ID=${TELEGRAM_API_ID}
       - TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
     ports:
@@ -51,7 +51,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`backend.search.fahdbahri.com`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
-      - "traefik.http.routers.next-app.tls.certResolver=letsencrypt"
+      - "traefik.http.routers.backend.tls.certResolver=letsencrypt"
       - "traefik.http.routers.backend.loadbalancer.server.port=8000"
   
   celery_gmail:
@@ -84,6 +84,7 @@ services:
     networks:
       - dokploy-network
 
+
 networks:
   dokploy-network:
-    driver: bridge
+    external: true

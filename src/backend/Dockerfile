@@ -13,6 +13,9 @@ COPY uv.lock pyproject.toml ./
 COPY . .
 
 
+ENV UV_HTTP_TIMEOUT=120
+
+
 RUN uv sync --locked 
 
 
