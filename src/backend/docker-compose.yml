@@ -49,7 +49,7 @@ services:
       - dokploy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`backend.search.fahdbahri.com`)"
+      - "traefik.http.routers.backend.rule=Host(`backendsearch.fahdbahri.com`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls.certResolver=letsencrypt"
       - "traefik.http.routers.backend.loadbalancer.server.port=8000"
@@ -88,3 +88,4 @@ services:
 networks:
   dokploy-network:
     external: true
+    name: dokploy-network
