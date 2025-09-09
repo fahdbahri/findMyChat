@@ -2,6 +2,8 @@ services:
   vault:
     image: hashicorp/vault:latest
     restart: always
+    ports:
+      - 8200
     cap_add:
       - IPC_LOCK
     environment:
@@ -38,8 +40,6 @@ services:
       - VAULT_ADDR=${VAULT_ADDR}
       - TELEGRAM_API_ID=${TELEGRAM_API_ID}
       - TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
-    ports:
-      - 8000
     networks:
       - dokploy-network
     labels:
