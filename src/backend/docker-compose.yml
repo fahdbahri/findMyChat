@@ -2,8 +2,6 @@ services:
   vault:
     image: hashicorp/vault:latest
     restart: always
-    ports:
-      - 8200
     cap_add:
       - IPC_LOCK
     environment:
