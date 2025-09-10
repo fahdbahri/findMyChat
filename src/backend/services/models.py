@@ -7,9 +7,7 @@ from .vault_encryption import encrypt_value
 
 load_dotenv()
 
-es = Elasticsearch(
-    os.getenv("ELASTICSEARCH_URL"), api_key=os.getenv("ELASTICSEARCH_API_KEY")
-)
+es = Elasticsearch(os.getenv("ELASTICSEARCH_URL"))
 
 if not es.ping():
     raise Exception("Elasticsearch is not running")
