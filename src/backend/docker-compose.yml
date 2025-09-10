@@ -62,8 +62,9 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`backendsearch.fahdbahri.com`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
-      - "traefik.http.routers.backend.tls.certResolver=letsencrypt"
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.cf-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.routers.backend.middlewares=cf-headers"
 
   celery_gmail:
     build: .
