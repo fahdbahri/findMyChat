@@ -95,7 +95,7 @@ async def telegram_confirm(data: ConfirmRequest, background_tasks: BackgroundTas
             await client.disconnect()
             return {
                 "status": "authinticated",
-                "redirect_url": f"http://localhost:5173/loading?user_id={data.user_id}",
+                "redirect_url": f"http://ai-find-chat.vercel.app/loading?user_id={data.user_id}",
             }
 
         print(f"user_id: {data.user_id}")

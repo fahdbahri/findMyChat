@@ -31,7 +31,7 @@ async def auth_callback(code: str, background_tasks: BackgroundTasks):
                     "code": code,
                     "client_id": GOOGLE_CLIENT_ID,
                     "client_secret": GOOGLE_CLIENT_SECRET,
-                    "redirect_uri": "http://localhost:8000/auth/callback",
+                    "redirect_uri": "https://backendsearch.fahdbahri.com/auth/callback",
                     "grant_type": "authorization_code",
                 },
             )
@@ -57,10 +57,12 @@ async def auth_callback(code: str, background_tasks: BackgroundTasks):
             background_tasks.add_task(fetch_message_ids, access_token, user_id)
 
             return RedirectResponse(
-                f"http://localhost:5173/telegram-auth?user_id={user_id}"
+                f"https://ai-find-chat.vercel.app/telegram-auth?user_id={user_id}"
             )
 
-        return RedirectResponse(f"http://localhost:5173/home?user_id={user_id}")
+        return RedirectResponse(
+            f"http://ai-find-chat.vercel.app/home?user_id={user_id}"
+        )
 
     except Exception as e:
         print(f"Auth error: {e}")
