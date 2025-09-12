@@ -50,7 +50,7 @@ export function TelegramOAuth() {
   }
 
   const handleVerifyOtp = async () => {
-    const res = await fetch("http://localhost:8000/auth/telegram/confirm", {
+    const res = await fetch("https://backendsearch.fahdbahri.com/auth/telegram/confirm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ user_id: userID, session_id: sessionID, code: otpCode }),
