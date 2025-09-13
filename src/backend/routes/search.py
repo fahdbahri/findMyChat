@@ -66,12 +66,14 @@ async def rag_search(request: SearchRequest):
                 {context_text}
 
             - Only use the given messages to answer.
-            - If you find the answer, summarize or quote it.
+            - If you find the answer, Only copy exact excerpts from the given messages that directly answer th              e query, do not summarize, paraphrase, or add new information.
             - If it's not in the messages, say "No relevant info found."
             """
 
             gemini_response = genai_client.models.generate_content(
-                model="gemini-1.5-flash", contents=prompt
+                model="gemini-1.5-flash",
+                contents=prompt,
+                generation_config={"temperature": 0.0, "max_new_tokens": 512},
             )
 
             answer = gemini_response.text.strip()
