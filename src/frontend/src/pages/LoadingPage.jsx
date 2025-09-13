@@ -7,10 +7,10 @@ export function LoadingPage() {
   const [status, setStatus] = useState({ gmail: "PENDING", telegram: "PENDING" });
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL;
-  const wsURL = API_URL.replace("https", "ws");
+  const wsURL = API_URL.replace("https://", "wss://").replace("http://", "ws://");
 
   useEffect(() => {
-    const ws = new WebSocket(`ws:${API_URL}/auth/telegram/task-status`);
+    const ws = new WebSocket(`${wsURL}/auth/telegram/task-status`);
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
