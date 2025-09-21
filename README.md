@@ -9,7 +9,9 @@
 
 ## The Architecture
 
-<img width="4591" height="7362" alt="Design" src="https://github.com/user-attachments/assets/47728828-3e0c-46c4-80f6-47f195106e1b" />
+
+<img width="7630" height="4853" alt="findChat" src="https://github.com/user-attachments/assets/74a591eb-f9c8-494d-bf9a-d7c7b8b8b521" />
+
 
 
 ## 🚀 Local Development Setup
