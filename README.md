@@ -10,7 +10,7 @@
 ## The Architecture
 
 
-<img width="7630" height="4853" alt="findChat" src="https://github.com/user-attachments/assets/74a591eb-f9c8-494d-bf9a-d7c7b8b8b521" />
+<img width="7630" height="4853" alt="findChat" src="https://github.com/user-attachments/assets/44831695-d344-4aaf-a395-22dc10a1197e" />
 
 
 
